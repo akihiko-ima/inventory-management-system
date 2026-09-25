@@ -6,3 +6,6 @@ backend/app/frontend/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# environment files
+.env
