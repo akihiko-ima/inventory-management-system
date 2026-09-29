@@ -74,6 +74,18 @@ services:
       - "8025:8025"
       - "1025:1025"
 
+  pgadmin:
+    image: dpage/pgadmin4:9.18
+    depends_on:
+      - db
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${FIRST_SUPERUSER:?Variable not set}
+      PGADMIN_DEFAULT_PASSWORD: ${FIRST_SUPERUSER_PASSWORD:?Variable not set}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
   playwright:
     build:
       context: .
@@ -98,3 +110,6 @@ services:
       - ./frontend/test-results:/app/frontend/test-results
     ports:
       - 9323:9323
+
+volumes:
+  pgadmin-data:

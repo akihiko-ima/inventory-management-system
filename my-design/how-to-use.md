@@ -13,6 +13,7 @@
 | db             | PostgreSQL 18                                | データ永続化                                          |
 | mailpit        | Mailpit                                      | 開発用のメール受信サーバー（実際には送信しない）      |
 | adminer        | Adminer                                      | DB を Web ブラウザから操作するツール                  |
+| pgadmin        | pgAdmin 4                                    | DB を Web ブラウザから操作・管理するツール（開発時のみ） |
 | proxy          | Traefik                                      | リバースプロキシ（Docker Compose 利用時）             |
 
 ---
@@ -43,12 +44,12 @@ cp .env.sample .env
 
 起動方法は 2 通りあります。開発時は「方法 A」を推奨します。
 
-### 方法 A: ローカル開発（DB とメールのみ Docker）
+### 方法 A: ローカル開発（DB・メール・pgAdmin のみ Docker）
 
-1. DB と Mailpit を起動します。
+1. DB、Mailpit、pgAdmin を起動します。
 
    ```bash
-   docker compose up -d db mailpit
+   docker compose up -d db mailpit pgadmin
    ```
 
 2. `backend` ディレクトリで依存関係をインストールし、DB を初期化します。
@@ -84,6 +85,7 @@ cp .env.sample .env
    | <http://localhost:8000>      | バックエンド API                    |
    | <http://localhost:8000/docs> | Swagger UI（API ドキュメント）      |
    | <http://localhost:8025>      | Mailpit（送信メールの確認）         |
+   | <http://localhost:5050>      | pgAdmin（DB 管理）                  |
 
 > フロントエンドの API 接続先は `frontend/.env` の `VITE_API_URL`（既定値: `http://localhost:8000`）で設定されています。
 
@@ -110,10 +112,28 @@ docker compose watch
 | <http://localhost:8080>      | Adminer（DB 管理）                       |
 | <http://localhost:8090>      | Traefik ダッシュボード                   |
 | <http://localhost:8025>      | Mailpit                                  |
+| <http://localhost:5050>      | pgAdmin（DB 管理）                       |
 
 - 方法 A で起動中の FastAPI サーバーがある場合は、ポート `8000` が競合するため停止してから起動してください。
 - 初回起動時は全サービスの準備に 1 分程度かかることがあります。`docker compose logs backend` で状況を確認できます。
 - `.env` を変更した場合は、スタックを再起動してください。
+
+#### pgAdmin の使い方
+
+pgAdmin は開発用のため `compose.override.yml` に定義しており、本番デプロイ（`compose.deploy.yml`）には含まれません。方法 A・方法 B のどちらでも一緒に起動します。
+
+1. <http://localhost:5050> を開き、`.env` の `FIRST_SUPERUSER`（メールアドレス）と `FIRST_SUPERUSER_PASSWORD` でログインします。
+2. 「Add New Server」でサーバーを登録します。
+
+   | 項目                 | 値                                  |
+   | -------------------- | ----------------------------------- |
+   | Host name/address    | `db`                                |
+   | Port                 | `5432`                              |
+   | Maintenance database | `app`                               |
+   | Username             | `postgres`                          |
+   | Password             | `.env` の `POSTGRES_PASSWORD` の値 |
+
+> **注意**: pgAdmin のログイン情報は初回起動時に `pgadmin-data` ボリュームへ保存されます。後から `.env` の `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` を変更しても反映されないため、変更を反映したい場合は `docker compose down` の後にボリュームを削除してから再起動してください（ボリューム名は `docker volume ls` で確認できます。例: `docker volume rm inventory-management-system_pgadmin-data`）。
 
 ---
 
@@ -173,9 +193,9 @@ docker compose watch
 | -------------------------- | ---- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `FASTAPI_ENV`              | 任意 | `development`                                                   | `development` を指定すると開発モードになります。`changethis` などの既定パスワードが警告のみで許容され、開発用 `/private` API が有効になり、Sentry が無効になります。本番では削除（未設定）してください。                                                           |
 | `PROJECT_NAME`             | 必須 | `"Full Stack FastAPI Project"`                                  | アプリケーション名。API ドキュメントのタイトルや、メール送信者名（`EMAILS_FROM_NAME` 未設定時）に使われます。                                                                                                                                                      |
-| `SECRET_KEY`               | 必須 | `changethis`                                                    | JWT アクセストークンの署名に使う秘密鍵。本番では必ずランダムな値に変更してください。生成例: `openssl rand -hex 32"`                                                                                                                                                |
-| `FIRST_SUPERUSER`          | 必須 | `admin@example.com`                                             | 初期データ作成時（`prestart.sh`）に作成される管理者ユーザーのメールアドレス。ログイン ID になります。                                                                                                                                                              |
-| `FIRST_SUPERUSER_PASSWORD` | 必須 | `changethis`                                                    | 上記管理者ユーザーのパスワード。本番では必ず変更してください。                                                                                                                                                                                                     |
+| `SECRET_KEY`               | 必須 | `changethis`                                                    | JWT アクセストークンの署名に使う秘密鍵。本番では必ずランダムな値に変更してください。生成例: `openssl rand -hex 32`                                                                                                                                                |
+| `FIRST_SUPERUSER`          | 必須 | `admin@example.com`                                             | 初期データ作成時（`prestart.sh`）に作成される管理者ユーザーのメールアドレス。ログイン ID になります。pgAdmin のログインメールアドレスにも使われます。                                                                                                                                                        |
+| `FIRST_SUPERUSER_PASSWORD` | 必須 | `changethis`                                                    | 上記管理者ユーザーのパスワード。pgAdmin のログインパスワードにも使われます。本番では必ず変更してください。                                                                                                                                                                                                     |
 | `SMTP_HOST`                | 任意 | `localhost`                                                     | メール送信に使う SMTP サーバーのホスト名。開発時は Mailpit を指します。`SMTP_HOST` と `EMAILS_FROM_EMAIL` の両方が設定されている場合のみメール送信が有効になります。                                                                                               |
 | `EMAILS_FROM_EMAIL`        | 任意 | `info@example.com`                                              | 送信メールの差出人アドレス。                                                                                                                                                                                                                                       |
 | `SMTP_TLS`                 | 任意 | `False`                                                         | SMTP 接続で STARTTLS を使うか。既定値は `True`。Mailpit を使う開発時は `False` にします。                                                                                                                                                                          |
