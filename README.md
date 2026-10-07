@@ -1,15 +1,21 @@
 # 在庫管理システムのサンプル
 
-## 開発のベースライン
+## 1. 開発のベースライン
 
 本リポジトリは、FastAPI公式が提供しているテンプレートをベースに、追加機能の設計と実装をおこなうリポジトリです。
 
 - テンプレートリンク先
   [https://github.com/fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template)
 
-## モチベーション
+## 2. モチベーション
 
 FastAPIテンプレートの設計思想を深く理解し、その構造を活かして、`より簡潔で正確な実装を実現し、より速く価値を提供するために`、日々学びと実践を続けています。
+
+## 3. 追加機能設計
+
+- 1\_[ペルソナ定義書](./docs/persona.md)
+
+---
 
 ## Backend Development
 
