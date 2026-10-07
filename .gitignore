@@ -9,3 +9,9 @@ backend/app/frontend/
 
 # environment files
 .env
+
+# Steering files (task management - temporary)
+.steering/*
+!.steering/.gitkeep
+
+.claude/settings.local.json
